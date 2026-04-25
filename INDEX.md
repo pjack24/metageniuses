@@ -55,7 +55,9 @@
 | `data/curated_sequences/forward_pass_unique_sequences.jsonl` | ~85k deduplicated sequences (default extraction input) |
 | `data/curated_sequences/forward_pass_all_rows.jsonl` | All rows before dedup (~112k) |
 | `data/curated_sequences/forward_pass_summary.json` | Curation stats |
-| `data/human_virus_class{1-4}.jsonl` | Human virus datasets (20k each) |
+| `data/human_virus_class{1-4}.jsonl` | Human virus datasets, no labels (20k each) |
+| `data/human_virus_class1_labeled.jsonl` | Class 1 with `source` + `class` labels (train set) |
+| `data/human_virus_class2_labeled.jsonl` | Class 2 with `source` + `class` labels (test set) |
 | `data/hmpd_{disease,sex,source}.jsonl` | Human microbiome project datasets |
 | `data/hvr_default.jsonl` | HVR default dataset (370 seqs) |
 | `data/raw_sources/*.csv` | Original uploaded CSVs |
@@ -63,8 +65,8 @@
 ## Vendor (cloned repos)
 | Directory | Purpose |
 |-----------|---------|
-| `vendor/interprot/` | InterProt SAE training code + visualizer (etowahadams/interprot) |
-| `vendor/metagene-pretrain/` | MetaGene-1 pretraining code (metagene-ai/metagene-pretrain) |
+| `vendor/interprot/` | InterProt SAE training code + visualizer (submodule: etowahadams/interprot) |
+| `vendor/metagene-pretrain/` | MetaGene-1 pretraining code (submodule: metagene-ai/metagene-pretrain) |
 
 ## Papers
 | File | Purpose |
