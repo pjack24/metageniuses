@@ -1,0 +1,38 @@
+{
+  "input": {
+    "path": "data/human_virus_class2.jsonl",
+    "format": "jsonl",
+    "sequence_key": "sequence",
+    "id_key": "sequence_id",
+    "metadata_keys": []
+  },
+  "preprocess": {
+    "uppercase": true,
+    "allowed_chars": "ACGTUN",
+    "replace_invalid_with": "N",
+    "max_invalid_fraction": 0.05,
+    "min_length": 1,
+    "max_length": 512,
+    "strip_whitespace": true
+  },
+  "model": {
+    "model_id": "metagene-ai/METAGENE-1",
+    "tokenizer_id": null,
+    "revision": null,
+    "local_files_only": false,
+    "trust_remote_code": false,
+    "device": "auto",
+    "dtype": "auto"
+  },
+  "layer_selection": {
+    "layers": null,
+    "last_n_layers": 4
+  },
+  "runtime": {
+    "output_root": "/root/results/cloud-extraction",
+    "run_id": "metagene_class2_4layers_20k",
+    "batch_size": 4,
+    "max_rows_per_shard": 100000,
+    "max_reads": 20000
+  }
+}
