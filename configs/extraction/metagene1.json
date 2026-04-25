@@ -1,0 +1,30 @@
+{
+  "input": {
+    "path": "/Users/astridteo/Downloads/metageniuses/data/human_virus_class1.jsonl",
+    "format": "jsonl",
+    "sequence_key": "sequence",
+    "id_key": "sequence_id"
+  },
+  "preprocess": {
+    "uppercase": true,
+    "allowed_chars": "ACGTUN",
+    "replace_invalid_with": "N",
+    "max_invalid_fraction": 0.1,
+    "min_length": 1,
+    "max_length": 512
+  },
+  "model": {
+    "model_id": "metagene-ai/METAGENE-1",
+    "dtype": "fp32",
+    "device": "cpu"
+  },
+  "layer_selection": {
+    "last_n_layers": 4
+  },
+  "runtime": {
+    "output_root": "/Users/astridteo/Downloads/metageniuses/data/activations",
+    "run_id": "metagene1_run",
+    "batch_size": 4,
+    "max_reads": 10
+  }
+}
