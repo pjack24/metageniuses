@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { Dna, Search, BarChart3, Shield, ArrowRight, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Search, BarChart3, Shield, ArrowRight, FlaskConical } from "lucide-react";
 
 const ROTATING_WORDS = [
   { text: "Pathogenic Sequences", color: "#8a0038" },
@@ -38,7 +39,7 @@ const FEATURES = [
   },
 ];
 
-export default function LandingPage({ onExplore }) {
+export default function LandingPage() {
   const [wordIndex, setWordIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
@@ -82,14 +83,24 @@ export default function LandingPage({ onExplore }) {
           Understand what a metagenomic foundation model has learned about
           pathogens, microbiomes, and viral sequences.
         </p>
-        <button
-          onClick={onExplore}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition cursor-pointer tracking-wide"
-          style={{ fontFamily: "'Roboto Condensed', sans-serif" }}
-        >
-          Explore Features
-          <ArrowRight className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/explorer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition cursor-pointer tracking-wide no-underline"
+            style={{ fontFamily: "'Roboto Condensed', sans-serif" }}
+          >
+            Explore Features
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            to="/experiments"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition cursor-pointer tracking-wide no-underline"
+            style={{ fontFamily: "'Roboto Condensed', sans-serif" }}
+          >
+            Experiments
+            <FlaskConical className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Stats bar */}
