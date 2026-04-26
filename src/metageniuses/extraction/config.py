@@ -87,6 +87,7 @@ class ModelConfig:
     trust_remote_code: bool = False
     device: str = "auto"
     dtype: str = "auto"
+    stop_after_last_requested_layer: bool = True
 
     def validate(self) -> None:
         if not self.model_id:
@@ -98,17 +99,65 @@ class RuntimeConfig:
     output_root: str = "results/extraction"
     run_id: str | None = None
     batch_size: int = 4
+    max_batch_size: int | None = None
+    initial_max_batch_size: int | None = None
+    release_to_max_after_sequences: int | None = None
+    batch_growth_success_batches: int = 2
+    batch_growth_step: int | None = None
+    reduce_batch_on_oom: bool = True
+    defer_token_index: bool = True
+    async_write: bool = True
+    async_queue_max_batches: int | None = None
     max_rows_per_shard: int = 100000
     max_reads: int | None = None
     resume: bool = False
+    flush_every_sequences: int = 100
+    progress_every_sequences: int = 100
 
     def validate(self) -> None:
         if self.batch_size < 1:
             raise ValueError("batch_size must be >= 1")
+        configured_max_batch_size = self.max_batch_size or self.batch_size
+        if configured_max_batch_size < self.batch_size:
+            raise ValueError("max_batch_size must be >= batch_size when set")
+        if self.initial_max_batch_size is not None:
+            if self.initial_max_batch_size < self.batch_size:
+                raise ValueError("initial_max_batch_size must be >= batch_size when set")
+            if self.initial_max_batch_size > configured_max_batch_size:
+                raise ValueError(
+                    "initial_max_batch_size must be <= max_batch_size when max_batch_size is set"
+                )
+            if (
+                self.initial_max_batch_size < configured_max_batch_size
+                and self.release_to_max_after_sequences is None
+            ):
+                raise ValueError(
+                    "release_to_max_after_sequences is required when initial_max_batch_size "
+                    "is lower than max_batch_size"
+                )
+        if self.initial_max_batch_size is None and self.release_to_max_after_sequences is not None:
+            raise ValueError(
+                "release_to_max_after_sequences requires initial_max_batch_size to also be set"
+            )
+        if (
+            self.release_to_max_after_sequences is not None
+            and self.release_to_max_after_sequences < 1
+        ):
+            raise ValueError("release_to_max_after_sequences must be >= 1 when set")
+        if self.batch_growth_success_batches < 1:
+            raise ValueError("batch_growth_success_batches must be >= 1")
+        if self.batch_growth_step is not None and self.batch_growth_step < 1:
+            raise ValueError("batch_growth_step must be >= 1 when set")
+        if self.async_queue_max_batches is not None and self.async_queue_max_batches < 1:
+            raise ValueError("async_queue_max_batches must be >= 1 when set")
         if self.max_rows_per_shard < 1:
             raise ValueError("max_rows_per_shard must be >= 1")
         if self.max_reads is not None and self.max_reads < 1:
             raise ValueError("max_reads must be >= 1 when set")
+        if self.flush_every_sequences < 1:
+            raise ValueError("flush_every_sequences must be >= 1")
+        if self.progress_every_sequences < 1:
+            raise ValueError("progress_every_sequences must be >= 1")
 
 
 @dataclass(frozen=True)

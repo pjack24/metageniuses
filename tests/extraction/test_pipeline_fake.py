@@ -73,7 +73,44 @@ class TestPipelineFake(unittest.TestCase):
             self.assertEqual(layer7_rows, layer8_rows)
             self.assertEqual(layer7_rows * 2, manifest["stats"]["total_rows_written"])
 
+            index_state = json.loads((artifact_root / "_index_state.json").read_text())
+            self.assertEqual(index_state["status"], "complete")
+
+            for layer_key, layer_payload in manifest["layers"].items():
+                for shard in layer_payload["shards"]:
+                    self.assertTrue((artifact_root / "activations" / shard["index_file"]).exists())
+
+            with (artifact_root / "sequences.jsonl").open("r", encoding="utf-8") as handle:
+                first_row = json.loads(handle.readline())
+            self.assertIn("token_ids", first_row)
+
+    def test_can_disable_deferred_indexing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "reads.jsonl"
+            input_path.write_text(json.dumps({"sequence_id": "r1", "sequence": "ACGTAC"}) + "\n")
+            cfg = ExtractionConfig.from_dict(
+                {
+                    "input": {"path": str(input_path), "format": "jsonl"},
+                    "preprocess": {"max_invalid_fraction": 1.0, "max_length": 64},
+                    "model": {"model_id": "fake/model"},
+                    "layer_selection": {"layers": [2]},
+                    "runtime": {
+                        "output_root": str(Path(tmpdir) / "out"),
+                        "run_id": "no_defer",
+                        "batch_size": 1,
+                        "defer_token_index": False,
+                    },
+                }
+            )
+
+            artifact_root = ResidualExtractionPipeline().run(
+                cfg, adapter=FakeModelAdapter(num_transformer_layers=4, d_model=8)
+            )
+            self.assertFalse((artifact_root / "_index_state.json").exists())
+            with (artifact_root / "sequences.jsonl").open("r", encoding="utf-8") as handle:
+                first_row = json.loads(handle.readline())
+            self.assertNotIn("token_ids", first_row)
+
 
 if __name__ == "__main__":
     unittest.main()
-

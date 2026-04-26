@@ -31,8 +31,17 @@
   "runtime": {
     "output_root": "/root/results/cloud-extraction",
     "run_id": "metagene_class2_4layers_20k",
-    "batch_size": 4,
+    "batch_size": 20,
+    "max_batch_size": 60,
+    "initial_max_batch_size": 40,
+    "release_to_max_after_sequences": 5000,
+    "batch_growth_success_batches": 2,
+    "batch_growth_step": 10,
+    "reduce_batch_on_oom": true,
+    "defer_token_index": true,
     "max_rows_per_shard": 100000,
-    "max_reads": 20000
+    "max_reads": 20000,
+    "flush_every_sequences": 1000,
+    "progress_every_sequences": 1000
   }
 }
