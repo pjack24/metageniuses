@@ -2,6 +2,23 @@
 
 Reverse-chronological. Each session appends what changed, what's unfinished, what to pick up next.
 
+### 2026-04-26 (session 6 — experiment execution)
+- **Experiment 1 (organism detectors) — COMPLETE**
+  - Part A: enrichment scan across 32,768 latents — 16,519 pathogen-enriched (Fisher FDR<0.01, OR>1), 2,534 non-pathogen-enriched, 4 pathogen-specific (F1>0.7), 19,533 Wilcoxon significant
+  - Part B: selected top 50 latents (4 specific + 46 enriched), pulled top 10 pathogen sequences per latent (500 total)
+  - Part C: BLAST all 500 sequences against NCBI nt — ~100% hit rate. Parallelized submission with round-robin polling.
+  - Part D: 12 high-confidence + 15 medium-confidence organism labels. Top detectors: Human astrovirus (multiple latents, 99%+ identity), Norovirus GI (10/10 consistency), Norovirus GII (7/10), Human adenovirus (5/10), Sapovirus
+  - Part E: volcano plot, organism detector bar chart, enrichment histogram
+  - Bugs fixed during run: NCBI returns ZIP not raw JSON for JSON2 format; BlastOutput2 can be dict or list; IncompleteRead not caught by retry logic; inf ORs break matplotlib histogram
+  - Script: `experiments/organism_detectors.py` (1049 lines, CLI with `--parts` and `--blast-test` flags, checkpoint/resume)
+- Experiment 6 (cross-delivery) — in progress, running in background
+  - Received class 2 SAE features from Bridget
+  - Fixed: n_jobs=1 for LogisticRegressionCV (disk space), max_workers=2 for ProcessPoolExecutor (memory)
+- Deleted redundant zips: `sae_final.pt.zip` (941M) and `features.npy.zip` (104M) — freed ~1GB
+- Cleaned up 5 stale worktrees (~900MB)
+- **Lesson learned**: Don't print verbose output to terminal for long-running jobs — redirect to log files. Ghostty buffers all scrollback in RAM.
+- **Next up**: Finish Exp 6, update docs with results. Then Phase 5 writeup.
+
 ### 2026-04-26 (session 5 — multi-layer planning)
 - Reviewed full SAE training pipeline (`src/metageniuses/sae/model.py`, `train.py`, `config.py`, `encode_features.py`) — confirmed it supports arbitrary layers with zero code changes. Just pass `--layer N`.
 - Confirmed existing extraction only covers layers 29-32 (`last_n_layers: 4` in cloud prod config). Layers 8, 16, 24 need fresh extraction on RunPod.

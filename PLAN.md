@@ -68,11 +68,12 @@
   - [x] K-mer enrichment analysis
   - [x] Differential signature (mean pathogen - mean non-pathogen vector)
   - [x] Volcano plot, PCA/t-SNE/UMAP projections
-- [ ] Organism-specific pathogen detectors (experiment 1) — THE MAIN RESULT
-  - [ ] Enrichment scan → top pathogen-specific latents
-  - [ ] Pull top-activating sequences per latent
-  - [ ] BLAST against NCBI → organism identification
-  - [ ] Label latents: "Latent X is an Influenza A detector"
+- [x] Organism-specific pathogen detectors (experiment 1) — THE MAIN RESULT
+  - [x] Enrichment scan → 16,519 pathogen-enriched, 4 pathogen-specific (F1>0.7)
+  - [x] Pull top-activating sequences per latent (50 latents × 10 seqs)
+  - [x] BLAST against NCBI → 500 sequences, ~100% hit rate
+  - [x] Label latents: 12 high-confidence + 15 medium-confidence organism detectors (Human astrovirus, Norovirus GI/GII, Human adenovirus, Sapovirus, etc.)
+  - [x] Figures: volcano plot, organism detector bar chart, enrichment histogram
 - [ ] Cross-delivery generalization (experiment 6)
   - [x] Encode class 2 sequences through SAE — received from Bridget (data/sae_model/features_class2.npy)
   - [ ] Test probe + enrichment stability across deliveries
