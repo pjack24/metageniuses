@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "./LandingPage";
 import ExplorerView from "./ExplorerView";
 import ExperimentsLayout from "./pages/ExperimentsLayout";
@@ -10,7 +10,7 @@ import Experiment5 from "./pages/Experiment5";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/explorer" element={<ExplorerView />} />
@@ -23,6 +23,6 @@ export default function App() {
           <Route path="5" element={<Experiment5 />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
