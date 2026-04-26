@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
 
+const BASE = import.meta.env.BASE_URL || "/";
+
 export default function useApi(url) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Map /api/experiments/N → static JSON files
+  const staticUrl = url.replace(/^\/api\/experiments\/(\d+)$/, `${BASE}data/experiment$1.json`);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetch(url)
+    fetch(staticUrl)
       .then((res) => {
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         return res.json();
@@ -29,7 +34,7 @@ export default function useApi(url) {
       });
 
     return () => { cancelled = true; };
-  }, [url]);
+  }, [staticUrl]);
 
   return { data, loading, error };
 }

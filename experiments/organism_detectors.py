@@ -947,13 +947,154 @@ def run_part_e(enrichment, organism_labels=None):
 
 
 # ============================================================
+#  PART F: API PAYLOAD
+# ============================================================
+
+def run_part_f(enrichment, organism_labels=None, blast_results=None, top_sequences=None):
+    """Generate api_results.json for the frontend visualizer."""
+    print(f"\n{'='*60}")
+    print(f"PART F: API payload generation")
+    print(f"{'='*60}")
+
+    fisher_ors = enrichment["fisher_ors"]
+    fisher_fdrs = enrichment["fisher_fdrs"]
+    log2fcs = enrichment["log2fcs"]
+    is_path_enriched = enrichment["is_path_enriched"]
+    is_nonpath_enriched = enrichment["is_nonpath_enriched"]
+    is_path_specific = enrichment["is_path_specific"]
+    best_f1s = enrichment["best_f1s"]
+
+    # Summary
+    high_conf = [r for r in (organism_labels or []) if r.get("confidence") in ("high",)]
+    med_conf = [r for r in (organism_labels or []) if r.get("confidence") in ("medium",)]
+    summary = {
+        "total_latents": len(fisher_ors),
+        "pathogen_enriched": int(is_path_enriched.sum()),
+        "nonpathogen_enriched": int(is_nonpath_enriched.sum()),
+        "pathogen_specific": int(is_path_specific.sum()),
+        "high_confidence_detectors": len(high_conf),
+        "medium_confidence_detectors": len(med_conf),
+    }
+
+    # Volcano data — subsample ALL categories for Recharts performance (~3k total)
+    # Keep all BLAST-analyzed latents, subsample the rest
+    blast_latent_ids = set()
+    if organism_labels:
+        blast_latent_ids = {int(r.get("latent_id", -1)) for r in organism_labels}
+
+    volcano = []
+    for i in range(len(fisher_ors)):
+        direction = "pathogen" if is_path_enriched[i] else ("nonpathogen" if is_nonpath_enriched[i] else "ns")
+        # Always keep BLAST-analyzed latents; subsample rest
+        if i not in blast_latent_ids:
+            if direction == "ns" and i % 40 != 0:
+                continue
+            if direction == "pathogen" and i % 8 != 0:
+                continue
+            if direction == "nonpathogen" and i % 4 != 0:
+                continue
+        fdr_val = float(fisher_fdrs[i])
+        neg_log = min(-np.log10(max(fdr_val, 1e-300)), 50)
+        l2fc = float(log2fcs[i])
+        if not np.isfinite(l2fc):
+            l2fc = 0.0
+        if not np.isfinite(neg_log):
+            neg_log = 0.0
+
+        entry = {
+            "latent_id": int(i),
+            "log2fc": round(l2fc, 4),
+            "neg_log10_pval": round(neg_log, 4),
+            "direction": direction,
+        }
+        # Add organism label if this latent was BLAST-analyzed
+        if organism_labels:
+            for r in organism_labels:
+                if int(r.get("latent_id", -1)) == i:
+                    org = r.get("dominant_organism", "")
+                    if org and org not in ("mixed/unresolved", "uncharacterized"):
+                        entry["organism"] = org
+                    break
+        volcano.append(entry)
+
+    # Detectors — the 50 BLAST-analyzed latents with full hit data
+    detectors = []
+    if organism_labels and blast_results and top_sequences:
+        for r in organism_labels:
+            lid = str(r.get("latent_id", ""))
+            blast_data = blast_results.get(lid, {})
+            seq_data = top_sequences.get(lid, {})
+            hits = blast_data.get("hits", [])
+
+            blast_hits = []
+            top_seqs = {s["sequence_id"]: s for s in seq_data.get("top_sequences", [])}
+            for h in hits:
+                if h.get("status") != "hit":
+                    continue
+                th = h.get("top_hit", {})
+                blast_hits.append({
+                    "sequence_id": h.get("sequence_id", ""),
+                    "organism": th.get("organism", ""),
+                    "accession": th.get("accession", ""),
+                    "percent_identity": th.get("percent_identity", 0),
+                    "e_value": th.get("e_value", 0),
+                    "bit_score": th.get("bit_score", 0),
+                    "sequence": top_seqs.get(h.get("sequence_id", ""), {}).get("sequence", ""),
+                })
+
+            fisher_or_val = r.get("fisher_or", 0)
+            if isinstance(fisher_or_val, str):
+                try:
+                    fisher_or_val = float(fisher_or_val)
+                except (ValueError, TypeError):
+                    fisher_or_val = 0
+            if not np.isfinite(fisher_or_val):
+                fisher_or_val = 999.0  # cap inf for JSON
+
+            detectors.append({
+                "latent_id": int(r.get("latent_id", 0)),
+                "fisher_or": round(float(fisher_or_val), 2),
+                "log2fc": round(float(r.get("log2fc", 0)), 4),
+                "best_f1": round(float(r.get("best_f1", 0)), 4),
+                "dominant_organism": r.get("dominant_organism", ""),
+                "hit_consistency": r.get("hit_consistency", ""),
+                "confidence": r.get("confidence", ""),
+                "mean_percent_identity": round(float(r.get("mean_percent_identity", 0)), 1),
+                "blast_hits": blast_hits,
+            })
+
+    # Enrichment histogram
+    finite_ors = fisher_ors[(fisher_ors > 0) & np.isfinite(fisher_ors)]
+    log2_ors = np.log2(finite_ors)
+    counts, edges = np.histogram(log2_ors, bins=40)
+    enrichment_histogram = [
+        {"bin_start": round(float(edges[i]), 3), "bin_end": round(float(edges[i+1]), 3), "count": int(counts[i])}
+        for i in range(len(counts))
+    ]
+
+    payload = {
+        "summary": summary,
+        "volcano": volcano,
+        "detectors": detectors,
+        "enrichment_histogram": enrichment_histogram,
+    }
+
+    out_path = OUT_DIR / "api_results.json"
+    with open(out_path, "w") as f:
+        json.dump(payload, f)
+    size_mb = out_path.stat().st_size / (1024 * 1024)
+    print(f"  Saved: {out_path} ({size_mb:.1f} MB)")
+    print(f"  Volcano points: {len(volcano)}, Detectors: {len(detectors)}")
+
+
+# ============================================================
 #  MAIN
 # ============================================================
 
 def main():
     parser = argparse.ArgumentParser(description="Experiment 1: Organism-Specific Pathogen Detectors")
-    parser.add_argument("--parts", default="ABCDE",
-                        help="Which parts to run (e.g., 'AB', 'C', 'DE', 'ABCDE')")
+    parser.add_argument("--parts", default="ABCDEF",
+                        help="Which parts to run (e.g., 'AB', 'C', 'DEF', 'ABCDEF')")
     parser.add_argument("--blast-test", action="store_true",
                         help="Test BLAST with 3 latents x 3 sequences only")
     args = parser.parse_args()
@@ -1039,6 +1180,31 @@ def main():
                         organism_labels.append(row)
 
         run_part_e(enrichment, organism_labels)
+
+    # Part F
+    if "F" in parts:
+        if enrichment is None:
+            enrichment = load_enrichment_from_csv()
+        if organism_labels is None:
+            labels_path = OUT_DIR / "organism_labels.csv"
+            if labels_path.exists():
+                import csv
+                with open(labels_path) as f:
+                    reader = csv.DictReader(f)
+                    organism_labels = [dict(row) for row in reader]
+                    for row in organism_labels:
+                        row["latent_id"] = int(row["latent_id"])
+        if blast_results is None:
+            blast_path = OUT_DIR / "blast_results.json"
+            if blast_path.exists():
+                with open(blast_path) as f:
+                    blast_results = json.load(f)
+        if top_sequences is None:
+            seq_path = OUT_DIR / "top_sequences_per_latent.json"
+            if seq_path.exists():
+                with open(seq_path) as f:
+                    top_sequences = json.load(f)
+        run_part_f(enrichment, organism_labels, blast_results, top_sequences)
 
     print(f"\n{'='*60}")
     print(f"DONE. Results in {OUT_DIR}/")
