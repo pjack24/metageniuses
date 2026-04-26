@@ -97,7 +97,44 @@ class TestResume(unittest.TestCase):
             with self.assertRaises(ValueError):
                 pipeline.run(cfg, adapter=adapter)
 
+    def test_resume_recovers_from_corrupt_progress_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "reads.jsonl"
+            input_path.write_text(
+                "\n".join(
+                    [
+                        json.dumps({"sequence_id": "r1", "sequence": "ACGT"}),
+                        json.dumps({"sequence_id": "r2", "sequence": "TGCA"}),
+                    ]
+                )
+                + "\n"
+            )
+
+            payload = {
+                "input": {"path": str(input_path), "format": "jsonl"},
+                "preprocess": {"max_invalid_fraction": 1.0},
+                "model": {"model_id": "fake/model"},
+                "layer_selection": {"layers": [2]},
+                "runtime": {
+                    "output_root": str(Path(tmpdir) / "out"),
+                    "run_id": "corrupt_progress",
+                    "batch_size": 1,
+                    "max_reads": 1,
+                },
+            }
+            pipeline = ResidualExtractionPipeline()
+            adapter = FakeModelAdapter(d_model=8, num_transformer_layers=4)
+            artifact_root = pipeline.run(ExtractionConfig.from_dict(payload), adapter=adapter)
+            (artifact_root / "_progress.json").write_text("{not valid json")
+
+            resume_payload = json.loads(json.dumps(payload))
+            resume_payload["runtime"]["max_reads"] = 2
+            resume_payload["runtime"]["resume"] = True
+            artifact_root_2 = pipeline.run(ExtractionConfig.from_dict(resume_payload), adapter=adapter)
+
+            manifest = json.loads((artifact_root_2 / "manifest.json").read_text())
+            self.assertEqual(manifest["stats"]["total_sequences_kept"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()
-
