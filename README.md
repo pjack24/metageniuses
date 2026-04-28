@@ -46,7 +46,7 @@ python experiments/sequence_umap.py
 python experiments/feature_clustering.py
 ```
 
-### Run Peyton's analysis pipeline
+### Run analysis pipeline
 ```bash
 pip install -e .
 metageniuses-analyze-sae \
